@@ -684,6 +684,30 @@ async function loadStore(){
     if(data)data.forEach(row=>{_store[row.key]=row.value;});
   }catch(e){console.warn('loadStore:',e);}
 }
+
+// ── localStorage → Supabase 1회 마이그레이션 ──
+async function migrateFromLocalStorage(){
+  if(localStorage.getItem('_migrated_v1')==='1')return; // 이미 완료
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    // 앱 데이터 키 패턴만 이전
+    if(/^(m_|res_|ri_|ccl_|chk_)/.test(k))keys.push(k);
+  }
+  if(!keys.length){localStorage.setItem('_migrated_v1','1');return;}
+  const rows=keys.map(k=>({key:k,value:localStorage.getItem(k),updated_at:new Date().toISOString()}));
+  try{
+    if(_sb){
+      const{error}=await _sb.from('travel_data').upsert(rows,{onConflict:'key',ignoreDuplicates:true});
+      if(!error){
+        // _store에도 반영
+        rows.forEach(r=>{if(!(_store[r.key]??false))_store[r.key]=r.value;});
+        localStorage.setItem('_migrated_v1','1');
+        console.log(`✅ localStorage 마이그레이션 완료: ${rows.length}건`);
+      }
+    }
+  }catch(e){console.warn('migration error:',e);}
+}
 let foodFilter={region:'전체',category:'전체'};
 let resFilter='전체';
 const mdCache={};
@@ -1113,6 +1137,7 @@ window.addEventListener('popstate',()=>{
     }
   }catch(e){console.warn('Supabase init:',e);}
   await loadStore();
+  await migrateFromLocalStorage();
   updateStatus();
   renderDashboard();
   renderFood();
