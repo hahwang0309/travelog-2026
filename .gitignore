@@ -1,0 +1,21 @@
+# 보안
+Security information.md
+*.pem
+*.key
+
+# 시스템 파일
+.DS_Store
+Thumbs.db
+~$*
+.~lock.*#
+
+# 임시 파일
+*.tmp
+*.log
+__pycache__/
+*.pyc
+
+# 백업/개발 파일
+travelog/index.html.bak
+venv/
+CLAUDE.md

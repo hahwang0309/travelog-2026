@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>부자 국토대장정 2026 🗺️</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --primary:#2D6A4F; --primary-light:#52B788; --accent:#F4A261;
+  --bg:#FFF8F0; --surface:#FFFFFF; --text:#1F2937;
+  --text-sub:#6B7280; --border:#E5E7EB;
+  --shadow:0 2px 10px rgba(0,0,0,.09); --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ── */
+.header{background:var(--primary);color:white;padding:12px 16px 0;
+  position:sticky;top:0;z-index:1000;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.header-top{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:8px}
+.header-title{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.header-subtitle{font-size:11px;opacity:.75;margin-top:2px}
+.trip-badge{background:var(--accent);color:white;font-size:12px;font-weight:700;
+  padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.progress-wrap{margin:2px 0}
+.progress-bar-bg{background:rgba(255,255,255,.2);border-radius:20px;height:4px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--accent);border-radius:20px;transition:width .5s}
+.progress-label{font-size:10px;opacity:.7;text-align:right;margin-top:1px}
+.tabs{display:flex;margin-top:4px}
+.tab{flex:1;padding:9px 2px;text-align:center;font-size:12px;font-weight:500;
+  color:rgba(255,255,255,.65);border-bottom:3px solid transparent;
+  cursor:pointer;transition:all .2s;user-select:none}
+.tab.active{color:white;border-bottom-color:var(--accent)}
+
+/* ── SECTIONS ── */
+.section{display:none}
+.section.active{display:block}
+
+/* ── DASHBOARD ── */
+#dash-map{height:42vh;width:100%}
+.dash-body{padding:12px 14px 80px;max-width:600px;margin:0 auto}
+.day-card{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.day-card-header{background:var(--primary);color:white;
+  padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+.day-card-header.tomorrow{background:#52B788}
+.day-card-label{font-size:11px;opacity:.8;margin-bottom:1px}
+.day-card-title{font-size:15px;font-weight:700}
+.day-card-detail-btn{font-size:12px;background:rgba(255,255,255,.25);
+  border:none;color:white;padding:4px 10px;border-radius:20px;cursor:pointer;
+  white-space:nowrap;flex-shrink:0}
+.day-card-body{padding:10px 14px}
+.ki-item{display:flex;align-items:baseline;gap:8px;padding:4px 0;
+  border-bottom:1px solid var(--border);font-size:13px}
+.ki-item:last-child{border-bottom:none}
+.ki-time{color:var(--primary);font-weight:600;font-size:11px;white-space:nowrap;min-width:42px}
+.ki-place{color:var(--text)}
+.day-card-desc{font-size:12px;color:var(--text-sub);padding:6px 14px 10px;
+  font-style:italic;border-top:1px solid var(--border)}
+
+/* 여행 전 미리보기 칩 */
+.preview-section{margin-bottom:12px}
+.preview-title{font-size:13px;font-weight:600;color:var(--text-sub);margin-bottom:8px}
+.day-chips{display:flex;flex-wrap:wrap;gap:6px}
+.day-chip{background:var(--surface);border:1.5px solid var(--border);
+  border-radius:20px;padding:5px 10px;font-size:12px;cursor:pointer;
+  transition:all .2s;color:var(--text)}
+.day-chip:hover,.day-chip.active{background:var(--primary);color:white;border-color:var(--primary)}
+.day-chip.today-chip{background:var(--accent);color:white;border-color:var(--accent)}
+
+/* 예약 요약 */
+.res-summary{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:12px 14px;display:flex;
+  align-items:center;gap:12px;cursor:pointer;margin-bottom:12px}
+.res-summary-bar-bg{flex:1;background:var(--border);border-radius:20px;height:8px}
+.res-summary-bar-fill{height:100%;background:var(--primary-light);border-radius:20px;transition:width .5s}
+.res-summary-label{font-size:12px;color:var(--text-sub);white-space:nowrap}
+.res-summary-num{font-size:18px;font-weight:700;color:var(--primary);white-space:nowrap}
+
+/* ── SCHEDULE TAB ── */
+.sched-days{padding:12px 14px 4px;overflow-x:auto;display:flex;gap:8px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.sched-days::-webkit-scrollbar{display:none}
+.sched-day-btn{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;padding:8px 12px;cursor:pointer;text-align:center;transition:all .2s}
+.sched-day-btn:hover{border-color:var(--primary)}
+.sched-day-btn.active{background:var(--primary);border-color:var(--primary);color:white}
+.sched-day-btn.today-day{border-color:var(--accent);background:#FFF3E8}
+.sdb-num{font-size:11px;font-weight:700}
+.sdb-date{font-size:10px;color:var(--text-sub);margin-top:1px}
+.sched-day-btn.active .sdb-date{color:rgba(255,255,255,.75)}
+.sched-day-btn.today-day .sdb-date{color:var(--accent)}
+
+.sched-list{padding:8px 14px 80px;max-width:600px;margin:0 auto}
+.sched-row{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:10px;padding:12px 14px;
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  transition:transform .15s}
+.sched-row:active{transform:scale(.98)}
+.sched-row.today-row{border-left:4px solid var(--accent)}
+.sched-row.past-row{opacity:.6}
+.sr-left{flex:1}
+.sr-num{font-size:11px;color:var(--primary);font-weight:700;margin-bottom:2px}
+.sr-title{font-size:14px;font-weight:600;margin-bottom:2px}
+.sr-route{font-size:12px;color:var(--text-sub)}
+.sr-arrow{color:var(--text-sub);font-size:18px;margin-left:8px}
+
+/* ── FULL-SCREEN DAY DETAIL ── */
+.day-detail-overlay{
+  position:fixed;inset:0;background:var(--bg);z-index:2000;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden
+}
+.day-detail-overlay.open{transform:translateY(0)}
+.ddo-header{background:var(--primary);color:white;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+  padding-top:max(14px, env(safe-area-inset-top))}
+.ddo-back{background:none;border:none;color:white;font-size:20px;
+  cursor:pointer;padding:0 4px;line-height:1}
+.ddo-title{flex:1;font-size:15px;font-weight:700}
+.ddo-nav{display:flex;gap:8px}
+.ddo-nav-btn{background:rgba(255,255,255,.2);border:none;color:white;
+  font-size:13px;padding:5px 10px;border-radius:20px;cursor:pointer}
+.ddo-nav-btn:disabled{opacity:.3}
+.ddo-content{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+
+/* MD 렌더링 스타일 */
+.md-body h1{font-size:18px;font-weight:700;color:var(--primary);margin:0 0 8px}
+.md-body h2{font-size:15px;font-weight:700;color:var(--primary);
+  margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--border)}
+.md-body h3{font-size:14px;font-weight:600;margin:14px 0 6px}
+.md-body p{font-size:13px;line-height:1.7;margin-bottom:8px;color:var(--text)}
+.md-body ul,.md-body ol{padding-left:18px;margin-bottom:8px}
+.md-body li{font-size:13px;line-height:1.7;margin-bottom:2px}
+.md-body blockquote{background:#F0FDF4;border-left:3px solid var(--primary-light);
+  padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0;
+  font-size:12px;color:#166534}
+.md-body blockquote p{margin:0;color:#166534}
+.md-body table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0;overflow-x:auto;display:block}
+.md-body th{background:var(--primary);color:white;padding:6px 8px;text-align:left}
+.md-body td{padding:5px 8px;border-bottom:1px solid var(--border)}
+.md-body tr:nth-child(even) td{background:#F9FAFB}
+.md-body code{background:#F3F4F6;padding:1px 5px;border-radius:4px;font-size:12px}
+.md-body pre{background:#F3F4F6;padding:10px;border-radius:8px;overflow-x:auto;margin:8px 0}
+.md-body pre code{background:none;padding:0}
+.md-body hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+.md-body strong{font-weight:700}
+.md-body a{color:var(--primary);text-decoration:underline}
+
+/* ── MAP (지도 탭 없앰 → 대시보드 내장) ── */
+/* ── FOOD ── */
+.food-wrap{padding:12px 14px 80px;max-width:600px;margin:0 auto}
+.food-title{text-align:center;font-size:20px;font-weight:700;color:var(--primary);padding:16px 0 4px}
+.food-sub{text-align:center;font-size:12px;color:var(--text-sub);margin-bottom:14px}
+.filter-group{margin-bottom:8px}
+.filter-label{font-size:11px;color:var(--text-sub);margin-bottom:4px}
+.region-filters{display:flex;flex-wrap:wrap;gap:6px}
+.rf-btn{background:var(--surface);border:1.5px solid var(--border);
+  border-radius:20px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .2s}
+.rf-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+.food-count{font-size:12px;color:var(--text-sub);margin:8px 0 4px}
+.food-card{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:12px 14px;margin-bottom:10px}
+.food-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.food-name{font-size:15px;font-weight:700}
+.food-meal{font-size:11px;color:var(--text-sub)}
+.food-menu{font-size:13px;color:var(--primary);margin-bottom:3px}
+.food-why{font-size:12px;color:var(--text);line-height:1.5;margin-bottom:4px}
+.food-addr{font-size:11px;color:var(--text-sub);margin-bottom:6px}
+.food-btns{display:flex;gap:6px;flex-wrap:wrap}
+.food-map-btn,.food-phone-btn{font-size:12px;padding:4px 10px;border-radius:20px;
+  text-decoration:none;cursor:pointer;border:none}
+.food-map-btn{background:var(--primary);color:white}
+.food-phone-btn{background:#EFF6FF;color:#1D4ED8}
+
+/* ── RESERVE ── */
+.res-wrap{padding:12px 14px 80px;max-width:600px;margin:0 auto}
+.res-title{text-align:center;font-size:20px;font-weight:700;color:var(--primary);padding:16px 0 4px}
+.res-sub{text-align:center;font-size:12px;color:var(--text-sub);margin-bottom:12px}
+.res-progress-card{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.res-stats{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.res-stats-label{font-size:13px;font-weight:600}
+.res-stats-sub{font-size:11px;color:var(--text-sub);margin-top:2px}
+.res-stats-num{font-size:28px;font-weight:700;color:var(--primary)}
+.res-bar-bg{background:var(--border);border-radius:20px;height:8px}
+.res-bar-fill{height:100%;background:var(--primary-light);border-radius:20px;transition:width .5s}
+.res-filter-row{display:flex;gap:6px;margin-bottom:10px}
+.res-rf-btn{background:var(--surface);border:1.5px solid var(--border);
+  border-radius:20px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .2s}
+.res-rf-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+.res-group-label{font-size:12px;font-weight:700;color:var(--text-sub);
+  text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px}
+.res-card{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:12px 14px;margin-bottom:8px;transition:opacity .3s}
+.res-card.done{opacity:.5}
+.res-card.highlight{outline:3px solid var(--accent);box-shadow:0 0 0 6px rgba(244,162,97,.25)}
+.res-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.res-name{font-size:14px;font-weight:700}
+.res-badges{display:flex;gap:4px;flex-wrap:wrap}
+.res-day-badge{font-size:10px;background:#EFF6FF;color:#1D4ED8;
+  padding:2px 6px;border-radius:8px;font-weight:600}
+.res-type-badge{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
+.res-type-badge.숙소{background:#FEF3C7;color:#B45309}
+.res-type-badge.교통{background:#DCFCE7;color:#166534}
+.res-type-badge.체험{background:#EDE9FE;color:#6D28D9}
+.res-desc{font-size:12px;color:var(--text-sub);margin-bottom:8px}
+.res-actions{display:flex;gap:6px;flex-wrap:wrap}
+.res-toggle-btn{font-size:12px;padding:5px 10px;border-radius:20px;
+  border:none;cursor:pointer;font-weight:600}
+.res-toggle-btn.pending{background:#FEF3C7;color:#B45309}
+.res-toggle-btn.complete{background:#DCFCE7;color:#166534}
+.res-link-btn,.res-phone-btn{font-size:12px;padding:5px 10px;border-radius:20px;
+  text-decoration:none;cursor:pointer;border:none}
+.res-link-btn{background:var(--primary);color:white}
+.res-phone-btn{background:#EFF6FF;color:#1D4ED8}
+.res-stay-link{cursor:pointer;text-decoration:underline dotted var(--accent);
+  text-underline-offset:3px}
+.res-mini-badge{font-size:10px;font-weight:700;padding:1px 6px;
+  border-radius:8px;margin-left:5px;vertical-align:middle}
+.res-mini-badge.pending{background:#FEF3C7;color:#B45309}
+.res-mini-badge.done{background:#DCFCE7;color:#166534}
+
+/* ── FEED / WRITE ── */
+.feed{padding:16px 14px 80px;max-width:600px;margin:0 auto}
+.feed-title{text-align:center;font-size:20px;font-weight:700;color:var(--primary);padding:16px 0 4px}
+.feed-meta{text-align:center;font-size:12px;color:var(--text-sub);margin-bottom:14px}
+.post-card{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.post-card.highlight{outline:3px solid var(--accent)}
+.post-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
+.day-badge{background:var(--primary);color:white;font-size:10px;
+  font-weight:700;padding:3px 7px;border-radius:8px;white-space:nowrap}
+.post-loc{font-size:13px;font-weight:600}
+.post-date{font-size:11px;color:var(--text-sub)}
+.post-body{font-size:13px;line-height:1.6;padding:0 12px 10px;color:var(--text)}
+.photos{display:grid;gap:2px}
+.photos.n1{grid-template-columns:1fr}
+.photos.n2{grid-template-columns:1fr 1fr}
+.photos.n3{grid-template-columns:1fr 1fr;grid-template-rows:auto auto}
+.photos.n3 img:first-child{grid-column:1/-1}
+.photos.n4{grid-template-columns:1fr 1fr}
+.photos img{width:100%;aspect-ratio:4/3;object-fit:cover;cursor:pointer;display:block}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-sub)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state h3{font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.popup-link{color:var(--primary);font-size:12px;margin-top:4px;font-weight:600}
+
+/* Write 탭 */
+.write-wrap{padding:16px 14px 80px;max-width:600px;margin:0 auto}
+.write-title{text-align:center;font-size:20px;font-weight:700;color:var(--primary);padding:16px 0 4px}
+.write-sub{text-align:center;font-size:12px;color:var(--text-sub);margin-bottom:14px}
+.card{background:var(--surface);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.row{display:flex;gap:10px}
+.fg{flex:1;margin-bottom:12px}
+.label{display:block;font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:4px}
+.input,.select,.textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:14px;background:var(--surface);
+  font-family:inherit;color:var(--text);transition:border-color .2s}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--primary)}
+.textarea{resize:vertical;min-height:100px;line-height:1.5}
+.btn{width:100%;padding:13px;border-radius:10px;border:none;font-size:15px;
+  font-weight:700;cursor:pointer;margin-bottom:8px;font-family:inherit}
+.btn-primary{background:var(--primary);color:white}
+.btn-outline{background:transparent;border:2px solid var(--border);color:var(--text)}
+.gate{text-align:center;padding:30px 0}
+.gate .lock{font-size:40px;margin-bottom:12px}
+.gate p{font-size:14px;color:var(--text-sub);margin-bottom:16px}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;
+  padding:24px;text-align:center;cursor:pointer;margin-bottom:10px}
+.upload-zone .ico{font-size:32px;margin-bottom:6px}
+.upload-zone p{font-size:13px;color:var(--text-sub)}
+input[type=file]{display:none}
+.preview-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.prev-item{position:relative;width:80px;height:80px}
+.prev-item img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.prev-del{position:absolute;top:-6px;right:-6px;background:#EF4444;color:white;
+  border-radius:50%;width:20px;height:20px;display:flex;align-items:center;
+  justify-content:center;font-size:11px;cursor:pointer;font-weight:700}
+
+/* Lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:3000;
+  display:none;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox img{max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain}
+.lb-close{position:absolute;top:16px;right:16px;color:white;font-size:24px;cursor:pointer}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1F2937;color:white;padding:10px 20px;border-radius:20px;
+  font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:4000;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#166534}
+.toast.err{background:#991B1B}
+
+/* Leaflet popup */
+.lf-popup img{width:100%;border-radius:6px;margin-bottom:6px;display:block}
+.lf-popup .inner{padding:0 2px}
+.lf-popup .ptitle{font-weight:700;font-size:13px}
+.lf-popup .pdate{font-size:11px;color:var(--text-sub);margin-bottom:3px}
+.lf-popup .pbody{font-size:12px;line-height:1.4;margin-bottom:4px}
+
+@media(min-width:640px){
+  #dash-map{height:50vh}
+  .ddo-header{padding-top:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">부자 국토대장정 2026 🗺️</div>
+      <div class="header-subtitle">8/3(월) – 8/17(월) · 15일간의 여름</div>
+    </div>
+    <div class="trip-badge" id="badge">D-?</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog" style="width:0%"></div></div>
+    <div class="progress-label" id="prog-label">계산 중…</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="home"    onclick="switchTab(this,'home')">🏠 홈</div>
+    <div class="tab"        data-tab="sched"   onclick="switchTab(this,'sched')">📋 일정</div>
+    <div class="tab"        data-tab="food"    onclick="switchTab(this,'food')">🍽️ 맛집</div>
+    <div class="tab"        data-tab="feed"    onclick="switchTab(this,'feed')">📖 기록</div>
+    <div class="tab"        data-tab="reserve" onclick="switchTab(this,'reserve')">🎫 예약</div>
+  </div>
+</div>
+
+<!-- HOME / DASHBOARD -->
+<section id="sec-home" class="section active">
+  <div id="dash-map"></div>
+  <div class="dash-body">
+    <div id="dash-preview-section"></div>
+    <div id="dash-today-card"></div>
+    <div id="dash-tomorrow-card"></div>
+    <div class="res-summary" onclick="switchTab(document.querySelector('[data-tab=reserve]'),'reserve')" id="dash-res-summary">
+      <div class="res-summary-num" id="dash-res-num">-</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;margin-bottom:4px">예약 현황</div>
+        <div class="res-summary-bar-bg"><div class="res-summary-bar-fill" id="dash-res-bar" style="width:0%"></div></div>
+      </div>
+      <div class="res-summary-label" id="dash-res-label">확인하기 →</div>
+    </div>
+  </div>
+</section>
+
+<!-- SCHEDULE -->
+<section id="sec-sched" class="section">
+  <div class="sched-days" id="sched-days"></div>
+  <div class="sched-list" id="sched-list"></div>
+</section>
+
+<!-- FOOD -->
+<section id="sec-food" class="section">
+  <div class="food-wrap">
+    <div class="food-title">🍽️ 지역 찐맛집</div>
+    <div class="food-sub">고기·국밥·전 중심 | 지역민 추천</div>
+    <div class="filter-group">
+      <div class="filter-label">📍 지역</div>
+      <div class="region-filters" id="region-filters"></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">🍴 종류</div>
+      <div class="region-filters" id="category-filters"></div>
+    </div>
+    <div id="food-count" class="food-count"></div>
+    <div id="food-list"></div>
+  </div>
+</section>
+
+<!-- FEED -->
+<section id="sec-feed" class="section">
+  <div class="feed">
+    <div class="feed-title">📖 여행 기록</div>
+    <div class="feed-meta" id="feed-meta">불러오는 중…</div>
+    <div id="feed-list"><div style="text-align:center;padding:40px;color:var(--text-sub)">⏳ 로딩 중…</div></div>
+    <button class="btn btn-outline" style="margin-top:8px" onclick="switchTab(document.querySelector('[data-tab=home]'),'home');setTimeout(()=>openWriteOverlay(),100)">✏️ 새 기록 남기기</button>
+  </div>
+</section>
+
+<!-- RESERVE -->
+<section id="sec-reserve" class="section">
+  <div class="res-wrap">
+    <div class="res-title">🎫 예약 관리</div>
+    <div class="res-sub">탭해서 완료 처리 · 링크로 바로 예약</div>
+    <div class="res-progress-card">
+      <div class="res-stats">
+        <div><div class="res-stats-label">예약 완료율</div>
+             <div class="res-stats-sub" id="res-stats-sub">0 / 0 완료</div></div>
+        <div class="res-stats-num" id="res-stats-num">0%</div>
+      </div>
+      <div class="res-bar-bg"><div class="res-bar-fill" id="res-bar" style="width:0%"></div></div>
+    </div>
+    <div class="res-filter-row" id="res-filters"></div>
+    <div id="res-list"></div>
+  </div>
+</section>
+
+<!-- FULL-SCREEN DAY DETAIL -->
+<div class="day-detail-overlay" id="day-detail-overlay">
+  <div class="ddo-header">
+    <button class="ddo-back" onclick="closeDayDetail()">←</button>
+    <div class="ddo-title" id="ddo-title">Day 1</div>
+    <div class="ddo-nav">
+      <button class="ddo-nav-btn" id="ddo-prev" onclick="navDayDetail(-1)">◀ 이전</button>
+      <button class="ddo-nav-btn" id="ddo-next" onclick="navDayDetail(1)">다음 ▶</button>
+    </div>
+  </div>
+  <div class="ddo-content" id="ddo-content"></div>
+</div>
+
+<!-- WRITE OVERLAY -->
+<div class="day-detail-overlay" id="write-overlay">
+  <div class="ddo-header">
+    <button class="ddo-back" onclick="closeWriteOverlay()">←</button>
+    <div class="ddo-title">✏️ 오늘의 기록</div>
+  </div>
+  <div class="ddo-content">
+    <div class="gate" id="gate">
+      <div class="lock">🔐</div>
+      <p>기록을 남기려면 여행 비밀번호를 입력하세요</p>
+      <div class="fg">
+        <input type="password" class="input" id="pw" placeholder="비밀번호"
+               style="text-align:center" onkeydown="if(event.key==='Enter')checkPw()">
+      </div>
+      <button class="btn btn-primary" onclick="checkPw()">확인</button>
+    </div>
+    <div id="form-wrap" style="display:none">
+      <div class="card">
+        <div class="row">
+          <div class="fg">
+            <label class="label">📅 날짜</label>
+            <input type="date" class="input" id="f-date">
+          </div>
+          <div class="fg">
+            <label class="label">☀️ 날씨</label>
+            <select class="select" id="f-weather">
+              <option value="맑음">☀️ 맑음</option>
+              <option value="구름">⛅ 구름</option>
+              <option value="흐림">☁️ 흐림</option>
+              <option value="비">🌧️ 비</option>
+              <option value="폭염">🥵 폭염</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="label">📍 권역</label>
+          <select class="select" id="f-region">
+            <option value="">-- 선택 --</option>
+            <option value="수도권"   data-lat="37.60" data-lng="126.85">수도권 (수원·춘천)</option>
+            <option value="강원영동" data-lat="37.75" data-lng="128.88">강원 영동 (강릉)</option>
+            <option value="경북"     data-lat="35.86" data-lng="129.22">경북 (경주)</option>
+            <option value="부산경남" data-lat="35.18" data-lng="129.07">부산·경남 (부산·통영)</option>
+            <option value="전남"     data-lat="34.76" data-lng="127.66">전남 (하동·여수)</option>
+            <option value="지리산"   data-lat="35.30" data-lng="127.60">지리산</option>
+            <option value="전북충청" data-lat="36.00" data-lng="127.80">전북·충청 (전주·단양)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="label">🏷️ 오늘의 장소</label>
+          <input type="text" class="input" id="f-loc" placeholder="예: 경포해변, 통영 동피랑…">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <label class="label">📝 오늘의 이야기</label>
+          <textarea class="textarea" id="f-content"
+            placeholder="오늘 어땠나요? 재밌었던 것, 힘들었던 것, 먹은 것… 😊"></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <label class="label">📷 사진</label>
+        <div class="upload-zone" onclick="document.getElementById('photo-input').click()">
+          <div class="ico">📸</div>
+          <p><strong>탭해서 사진 선택</strong></p>
+          <p>여러 장 동시 선택 가능</p>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" multiple onchange="previewPhotos(this.files)">
+        <div class="preview-grid" id="preview-grid"></div>
+      </div>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitPost()">📮 기록 저장하기</button>
+      <button class="btn btn-outline" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lb" onclick="closeLb()">
+  <span class="lb-close">✕</span>
+  <img id="lb-img" src="">
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script>
+// ─── Supabase ──────────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+
+// ─── Constants ────────────────────────────────────────────────
+const START = new Date(2026, 7, 3);
+const END   = new Date(2026, 7, 17);
+
+// 15일 루트 좌표
+const ROUTE_LATLNG = [
+  [37.566, 126.978], // 서울
+  [37.264, 127.028], // 수원
+  [37.882, 127.730], // 춘천
+  [37.752, 128.876], // 강릉
+  [35.856, 129.225], // 경주
+  [35.179, 129.075], // 부산
+  [34.854, 128.433], // 통영
+  [35.067, 127.752], // 하동
+  [34.760, 127.662], // 여수
+  [35.300, 127.600], // 지리산
+  [35.824, 127.148], // 전주
+  [36.991, 127.925], // 충주
+  [36.985, 128.366], // 단양
+  [37.566, 126.978], // 서울 귀환
+];
+const ROUTE_NAMES = ["서울","수원","춘천","강릉","경주","부산","통영","하동","여수","지리산","전주","충주","단양","서울(귀환)"];
+// 각 waypoint가 몇 일차인지 (0-based Day01~Day15)
+const ROUTE_DAYS  = [1, 1, 2, 3, 4, 6, 8, 9, 9, 11, 12, 14, 14, 15];
+
+// ─── Trip status ──────────────────────────────────────────────
+function getTodayDay() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (today < START || today > END) return -1;
+  return Math.floor((today - START) / 864e5) + 1;
+}
+
+function updateStatus() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const badge = document.getElementById('badge');
+  const prog  = document.getElementById('prog');
+  const lbl   = document.getElementById('prog-label');
+  if (today < START) {
+    const d = Math.ceil((START - today) / 864e5);
+    badge.textContent = `D-${d}`;
+    prog.style.width = '0%';
+    lbl.textContent = `출발까지 ${d}일 남았어요`;
+  } else if (today > END) {
+    badge.textContent = '완주 🎉';
+    prog.style.width = '100%';
+    lbl.textContent = '15일 대장정 완주!';
+  } else {
+    const day = getTodayDay();
+    const pct = Math.round(((today - START) / (END - START)) * 100);
+    badge.textContent = `Day ${day}`;
+    prog.style.width = pct + '%';
+    lbl.textContent = `15일 중 ${day}일째 (${pct}%)`;
+  }
+}
+
+// ─── Leaflet Map ──────────────────────────────────────────────
+let dashMap;
+function initDashMap() {
+  dashMap = L.map('dash-map', {zoomControl:false}).setView([36.5, 127.8], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution:'© OpenStreetMap', maxZoom:18}).addTo(dashMap);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayDay = getTodayDay();
+
+  // 구간별 색상: 지나온 길(초록 실선) / 남은 길(회색 점선)
+  for (let i = 0; i < ROUTE_LATLNG.length - 1; i++) {
+    const segDay = ROUTE_DAYS[i];
+    const isPast = todayDay > 0 && segDay < todayDay;
+    const isToday = todayDay > 0 && segDay === todayDay;
+    L.polyline([ROUTE_LATLNG[i], ROUTE_LATLNG[i+1]], {
+      color: isPast || isToday ? '#2D6A4F' : '#9CA3AF',
+      weight: isPast || isToday ? 3 : 2,
+      dashArray: isPast || isToday ? null : '7,6',
+      opacity: .85
+    }).addTo(dashMap);
+  }
+
+  // 마커
+  ROUTE_LATLNG.forEach((ll, i) => {
+    const segDay = ROUTE_DAYS[i];
+    const isToday = todayDay > 0 && segDay === todayDay;
+    const isPast  = todayDay > 0 && segDay < todayDay;
+    const color   = isToday ? '#F4A261' : (isPast ? '#2D6A4F' : '#D1D5DB');
+    const radius  = isToday ? 8 : 5;
+    L.circleMarker(ll, {
+      radius, fillColor: color, color: 'white', weight: 2, fillOpacity: 1
+    }).addTo(dashMap)
+      .bindTooltip(ROUTE_NAMES[i], {permanent: false, direction:'top'})
+      .on('click', () => { if(i < 13) openDayDetail(ROUTE_DAYS[i]); });
+  });
+
+  // 여행 전: 전체 경로 보이도록, 여행 중: 오늘 위치 중심
+  if (todayDay > 0) {
+    const idx = ROUTE_DAYS.findIndex(d => d === todayDay);
+    if (idx >= 0) dashMap.setView(ROUTE_LATLNG[idx], 8);
+  }
+}
+
+// ─── Dashboard ────────────────────────────────────────────────
+function renderDashboard() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayDay = getTodayDay();
+
+  // 예약 요약
+  const total = RESERVATIONS.length;
+  const done  = RESERVATIONS.filter(r => resIsDone(r.id)).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('dash-res-num').textContent   = `${done}/${total}`;
+  document.getElementById('dash-res-bar').style.width   = pct + '%';
+  document.getElementById('dash-res-label').textContent = `${pct}% 완료 →`;
+
+  if (todayDay > 0) {
+    // 여행 중: 오늘/내일 카드
+    renderDayCard('dash-today-card',   todayDay,     '📅 오늘',  false);
+    renderDayCard('dash-tomorrow-card', todayDay + 1, '🌙 내일',  true);
+    document.getElementById('dash-preview-section').innerHTML = '';
+  } else {
+    // 여행 전: 미리보기 칩
+    document.getElementById('dash-today-card').innerHTML    = '';
+    document.getElementById('dash-tomorrow-card').innerHTML = '';
+    renderPreviewChips();
+  }
+}
+
+function renderDayCard(elId, dayNum, label, isTomorrow) {
+  const plan = DAY_PLANS.find(p => p.dayNum === dayNum);
+  const el = document.getElementById(elId);
+  if (!plan) { el.innerHTML = ''; return; }
+
+  const items = plan.keyItems.slice(0, 4).map(ki => {
+    const sp = ki.indexOf(' ');
+    const time  = sp > 0 ? ki.slice(0, sp) : '';
+    const place = sp > 0 ? ki.slice(sp+1)  : ki;
+    return `<div class="ki-item"><span class="ki-time">${time}</span><span class="ki-place">${place}</span></div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="day-card">
+      <div class="day-card-header${isTomorrow?' tomorrow':''}">
+        <div>
+          <div class="day-card-label">${label} · Day ${dayNum} · ${plan.dateLabel}</div>
+          <div class="day-card-title">${plan.route}</div>
+        </div>
+        <button class="day-card-detail-btn" onclick="openDayDetail(${dayNum})">상세보기 →</button>
+      </div>
+      <div class="day-card-body">${items || '<div style="color:var(--text-sub);font-size:13px;padding:4px 0">일정 정보 없음</div>'}</div>
+      ${plan.desc ? `<div class="day-card-desc">"${plan.desc}"</div>` : ''}
+    </div>`;
+}
+
+function renderPreviewChips() {
+  const sec = document.getElementById('dash-preview-section');
+  const chips = DAY_PLANS.map(p =>
+    `<div class="day-chip" data-day="${p.dayNum}" onclick="previewDay(${p.dayNum})">
+      <div style="font-weight:700;font-size:12px">Day${p.dayNum}</div>
+      <div style="font-size:10px;color:var(--text-sub);margin-top:1px">${p.dateLabel.split('(')[0]}</div>
+    </div>`
+  ).join('');
+  sec.innerHTML = `
+    <div class="preview-section">
+      <div class="preview-title">📅 일정 미리보기 — 클릭해서 확인</div>
+      <div class="day-chips">${chips}</div>
+    </div>`;
+}
+
+function previewDay(dayNum) {
+  document.querySelectorAll('.day-chip').forEach(c => c.classList.remove('active'));
+  const chip = document.querySelector(`.day-chip[data-day="${dayNum}"]`);
+  if (chip) chip.classList.add('active');
+  openDayDetail(dayNum);
+}
+
+// ─── Day Detail Overlay ───────────────────────────────────────
+let currentDetailDay = 1;
+
+function openDayDetail(dayNum) {
+  const plan = DAY_PLANS.find(p => p.dayNum === dayNum);
+  if (!plan) return;
+  currentDetailDay = dayNum;
+
+  document.getElementById('ddo-title').textContent = `Day ${dayNum} · ${plan.dateLabel} · ${plan.route}`;
+  document.getElementById('ddo-content').innerHTML =
+    `<div class="md-body">${marked.parse(plan.content)}</div>`;
+  document.getElementById('ddo-prev').disabled = dayNum <= 0;
+  document.getElementById('ddo-next').disabled = dayNum >= 15;
+  document.getElementById('ddo-content').scrollTop = 0;
+  document.getElementById('day-detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDayDetail() {
+  document.getElementById('day-detail-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function navDayDetail(dir) {
+  const next = currentDetailDay + dir;
+  if (next < 0 || next > 15) return;
+  openDayDetail(next);
+}
+
+// 스와이프로 닫기 (모바일)
+(function(){
+  let startY = 0;
+  const el = document.getElementById('day-detail-overlay');
+  el.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, {passive:true});
+  el.addEventListener('touchend',   e => {
+    const dy = e.changedTouches[0].clientY - startY;
+    if (dy > 80 && document.getElementById('ddo-content').scrollTop === 0) closeDayDetail();
+  }, {passive:true});
+})();
+
+// ─── Schedule Tab ─────────────────────────────────────────────
+function renderSchedTab() {
+  const todayDay = getTodayDay();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // 상단 일 선택 칩
+  const chips = DAY_PLANS.map(p => {
+    const isToday = p.dayNum === todayDay;
+    const label = p.dayNum === 0 ? 'D-1' : `Day${p.dayNum}`;
+    return `<div class="sched-day-btn${isToday?' today-day':''}" onclick="scrollToSchedRow(${p.dayNum})">
+      <div class="sdb-num">${label}</div>
+      <div class="sdb-date">${p.dateLabel.split('(')[0]}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('sched-days').innerHTML = chips;
+
+  // 일정 목록
+  const list = DAY_PLANS.map(p => {
+    const isToday = p.dayNum === todayDay;
+    const planDate = p.date ? new Date(p.date) : null;
+    const isPast   = planDate && planDate < today;
+    const label = p.dayNum === 0 ? '출발 전날' : `Day ${p.dayNum}`;
+    return `<div class="sched-row${isToday?' today-row':''}${isPast?' past-row':''}"
+                 id="sr-${p.dayNum}" onclick="openDayDetail(${p.dayNum})">
+      <div class="sr-left">
+        <div class="sr-num">${label}${isToday?' 🔴 TODAY':''}</div>
+        <div class="sr-title">${p.route}</div>
+        <div class="sr-route">${p.dateLabel}</div>
+      </div>
+      <div class="sr-arrow">›</div>
+    </div>`;
+  }).join('');
+  document.getElementById('sched-list').innerHTML = list;
+
+  // 오늘 행으로 스크롤
+  if (todayDay >= 0) {
+    setTimeout(() => {
+      const el = document.getElementById('sr-' + todayDay);
+      if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    }, 200);
+  }
+}
+
+function scrollToSchedRow(dayNum) {
+  const el = document.getElementById('sr-' + dayNum);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+// ─── Map pins (feed posts) ─────────────────────────────────────
+function calcDay(dateStr) {
+  return Math.floor((new Date(dateStr) - START) / 864e5) + 1;
+}
+
+function addPin(post) {
+  if (!post.lat || !post.lng || !dashMap) return;
+  const day = post.day_number ?? calcDay(post.trip_date);
+  const hasPhoto = post.photo_urls?.length > 0;
+  const icon = L.divIcon({
+    html:`<div style="height:28px;min-width:28px;padding:0 6px;
+      background:${hasPhoto?'#2D6A4F':'#F4A261'};border:2px solid white;
+      border-radius:14px;box-shadow:0 2px 6px rgba(0,0,0,.3);
+      display:inline-flex;align-items:center;justify-content:center;
+      color:white;font-size:10px;font-weight:700;white-space:nowrap">Day${day}</div>`,
+    className:'', iconSize:null
+  });
+  const m = L.marker([post.lat, post.lng], {icon}).addTo(dashMap);
+  let html = `<div class="lf-popup" onclick="goToPost('${post.id}')" style="cursor:pointer">`;
+  if (hasPhoto) html += `<img src="${post.photo_urls[0]}" alt="">`;
+  html += `<div class="inner">
+    <div class="ptitle">📍 ${post.location_name}</div>
+    <div class="pdate">${post.trip_date} · Day ${day}</div>
+    ${post.content?`<div class="pbody">${post.content.substring(0,60)}…</div>`:''}
+    <div class="popup-link">📖 기록 보기 →</div>
+  </div></div>`;
+  m.bindPopup(html, {maxWidth:200});
+}
+
+// ─── Posts ─────────────────────────────────────────────────────
+async function loadPosts() {
+  const { data: posts, error } = await sb.from('posts').select('*').order('trip_date');
+  if (error) { console.error(error); return; }
+  const list  = document.getElementById('feed-list');
+  const meta  = document.getElementById('feed-meta');
+  if (!posts?.length) {
+    meta.textContent = '아직 기록이 없어요';
+    list.innerHTML = `<div class="empty-state">
+      <div class="icon">🗺️</div><h3>여행이 곧 시작됩니다!</h3>
+      <p>8월 3일 출발!<br>여행 중 기록한 사진과 이야기가 여기 쌓여요.</p></div>`;
+  } else {
+    meta.textContent = `총 ${posts.length}개의 기록`;
+    list.innerHTML   = posts.map(postCard).join('');
+  }
+  posts?.forEach(addPin);
+}
+
+function postCard(p) {
+  const day = p.day_number ?? calcDay(p.trip_date);
+  const photos = p.photo_urls ?? [];
+  const n = Math.min(photos.length, 4);
+  const wEmoji = {맑음:'☀️',구름:'⛅',흐림:'☁️',비:'🌧️',폭염:'🥵'};
+  const photosHtml = n ? `<div class="photos n${n}">${
+    photos.slice(0,4).map(u => `<img src="${u}" loading="lazy" onclick="openLb('${u}')">`).join('')
+  }</div>` : '';
+  return `<div class="post-card" id="post-${p.id}">
+    <div class="post-head">
+      <div class="day-badge">Day ${day}</div>
+      <div><div class="post-loc">📍 ${p.location_name}</div>
+           <div class="post-date">${p.trip_date}${p.weather?' &nbsp;'+(wEmoji[p.weather]||'')+' '+p.weather:''}</div></div>
+    </div>
+    ${photosHtml}
+    ${p.content?`<div class="post-body">${p.content}</div>`:''}
+  </div>`;
+}
+
+// ─── Auth + Write ──────────────────────────────────────────────
+let authed = false, selFiles = [];
+
+function openWriteOverlay()  { document.getElementById('write-overlay').classList.add('open'); document.body.style.overflow='hidden'; }
+function closeWriteOverlay() { document.getElementById('write-overlay').classList.remove('open'); document.body.style.overflow=''; }
+
+function checkPw() {
+  if (document.getElementById('pw').value === CONFIG.adminPassword) {
+    authed = true;
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('form-wrap').style.display = 'block';
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    toast('✅ 로그인 완료!', 'ok');
+  } else { toast('❌ 비밀번호 틀렸어요', 'err'); document.getElementById('pw').value=''; }
+}
+function doLogout() {
+  authed = false;
+  document.getElementById('gate').style.display = 'block';
+  document.getElementById('form-wrap').style.display = 'none';
+  document.getElementById('pw').value = '';
+}
+function previewPhotos(files) { selFiles = Array.from(files); renderPreview(); }
+function renderPreview() {
+  document.getElementById('preview-grid').innerHTML = selFiles.map((f,i)=>{
+    const url = URL.createObjectURL(f);
+    return `<div class="prev-item"><img src="${url}"><div class="prev-del" onclick="removeFile(${i})">✕</div></div>`;
+  }).join('');
+}
+function removeFile(i) { selFiles.splice(i,1); renderPreview(); }
+
+async function uploadAll() {
+  const urls = [];
+  for (const f of selFiles) {
+    const ext  = f.name.split('.').pop() || 'jpg';
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await sb.storage.from('travel-photos').upload(path, f);
+    if (error) throw error;
+    const { data } = sb.storage.from('travel-photos').getPublicUrl(path);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
+
+async function submitPost() {
+  if (!authed) { toast('먼저 로그인하세요', 'err'); return; }
+  const date    = document.getElementById('f-date').value;
+  const weather = document.getElementById('f-weather').value;
+  const region  = document.getElementById('f-region').value;
+  const loc     = document.getElementById('f-loc').value.trim();
+  const content = document.getElementById('f-content').value.trim();
+  if (!date)   { toast('날짜를 선택해주세요', 'err'); return; }
+  if (!region) { toast('권역을 선택해주세요', 'err'); return; }
+  if (!loc)    { toast('장소 이름을 입력해주세요', 'err'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '⏳ 저장 중…';
+  try {
+    let photoUrls = [];
+    if (selFiles.length) { toast('📸 업로드 중…'); photoUrls = await uploadAll(); }
+    const sel = document.getElementById('f-region');
+    const opt = sel.options[sel.selectedIndex];
+    const { error } = await sb.from('posts').insert({
+      trip_date: date, day_number: calcDay(date),
+      location_name: loc, region,
+      lat: parseFloat(opt.dataset.lat), lng: parseFloat(opt.dataset.lng),
+      content: content||null, photo_urls: photoUrls, weather,
+    });
+    if (error) throw error;
+    toast('🎉 기록이 저장됐어요!', 'ok');
+    document.getElementById('f-loc').value='';
+    document.getElementById('f-content').value='';
+    document.getElementById('f-region').value='';
+    document.getElementById('preview-grid').innerHTML='';
+    document.getElementById('photo-input').value='';
+    selFiles=[];
+    closeWriteOverlay();
+    await loadPosts();
+  } catch(err) {
+    console.error(err); toast('❌ 저장 실패', 'err');
+  } finally {
+    btn.disabled=false; btn.textContent='📮 기록 저장하기';
+  }
+}
+
+// ─── Reservations ─────────────────────────────────────────────
+function resIsDone(id)       { return localStorage.getItem('res_done_'+id)==='1'; }
+function resSetDone(id, val) { localStorage.setItem('res_done_'+id, val?'1':'0'); }
+
+function buildResActions(container, r) {
+  const done = resIsDone(r.id);
+  const btn = document.createElement('button');
+  btn.className = 'res-toggle-btn '+(done?'complete':'pending');
+  btn.textContent = done?'✅ 완료됨':'⬜ 미완료';
+  btn.onclick = () => toggleRes(r.id);
+  container.appendChild(btn);
+  if (r.bookUrl) {
+    const a = document.createElement('a');
+    a.className='res-link-btn'; a.href=r.bookUrl; a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='🔗 예약하기';
+    container.appendChild(a);
+  }
+  if (r.bookUrl2) {
+    const a = document.createElement('a');
+    a.className='res-link-btn'; a.href=r.bookUrl2; a.target='_blank'; a.rel='noopener noreferrer';
+    a.style.background='var(--accent)'; a.textContent='🔗 대안 예약';
+    container.appendChild(a);
+  }
+  if (r.phone) {
+    const a = document.createElement('a');
+    a.className='res-phone-btn'; a.href='tel:'+r.phone; a.textContent='📞 '+r.phone;
+    container.appendChild(a);
+  }
+}
+
+let resFilter = '전체';
+function renderReservations(filter) {
+  if (filter !== undefined) resFilter = filter;
+  const total = RESERVATIONS.length;
+  const done  = RESERVATIONS.filter(r => resIsDone(r.id)).length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  document.getElementById('res-stats-num').textContent = pct+'%';
+  document.getElementById('res-stats-sub').textContent = done+' / '+total+' 완료';
+  document.getElementById('res-bar').style.width = pct+'%';
+  const types = ['전체','숙소','교통','체험'];
+  document.getElementById('res-filters').innerHTML = types.map(t =>
+    '<div class="res-rf-btn'+(t===resFilter?' active':'')+'" onclick="renderReservations(\''+t+'\')">'+t+'</div>'
+  ).join('');
+  const list = resFilter==='전체' ? RESERVATIONS : RESERVATIONS.filter(r=>r.type===resFilter);
+  const typeIcon = {숙소:'🏨',교통:'🚌',체험:'🎡'};
+  const groups = {};
+  list.forEach(r => (groups[r.type]=groups[r.type]||[]).push(r));
+  const listEl = document.getElementById('res-list');
+  listEl.innerHTML = '';
+  ['숙소','교통','체험'].forEach(type => {
+    if (!groups[type]) return;
+    const lbl = document.createElement('div');
+    lbl.className='res-group-label'; lbl.textContent=(typeIcon[type]||'')+' '+type;
+    listEl.appendChild(lbl);
+    groups[type].forEach(r => {
+      const isDone = resIsDone(r.id);
+      const card = document.createElement('div');
+      card.className='res-card'+(isDone?' done':''); card.id='rcard-'+r.id;
+      function calcDowRange(dateStr) {
+        if (!dateStr) return null;
+        const DOW=['일','월','화','수','목','금','토'];
+        const d = dateStr.replace('–','-').replace('—','-');
+        const parts = d.split('-');
+        const [m1,d1]=parts[0].split('/').map(Number);
+        const start=new Date(2026,m1-1,d1);
+        if(parts.length<2) return DOW[start.getDay()];
+        let m2,d2;
+        if(parts[1].includes('/')) [m2,d2]=parts[1].split('/').map(Number);
+        else { m2=m1; d2=parseInt(parts[1]); }
+        const end=new Date(2026,m2-1,d2);
+        let result='';
+        for(let dt=new Date(start);dt<end;dt.setDate(dt.getDate()+1)) result+=DOW[dt.getDay()];
+        return result||DOW[start.getDay()];
+      }
+      const dowRange=calcDowRange(r.date);
+      const dateLabel=r.date?r.date.replace('–','~')+(dowRange?' ('+dowRange+')':''):'';
+      const dayRange=dateLabel||('Day '+r.day);
+      card.innerHTML='<div class="res-card-top"><div class="res-name">'+(isDone?'✅ ':'')+r.name+'</div>'+
+        '<div class="res-badges"><span class="res-day-badge">'+dayRange+'</span>'+
+        '<span class="res-type-badge '+r.type+'">'+r.type+'</span></div></div>'+
+        '<div class="res-desc">'+r.desc+'</div>'+
+        '<div class="res-actions" id="ract-'+r.id+'"></div>';
+      listEl.appendChild(card);
+      buildResActions(document.getElementById('ract-'+r.id), r);
+    });
+  });
+  if (!listEl.children.length)
+    listEl.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub)">해당 항목 없음</div>';
+}
+
+function toggleRes(id) { resSetDone(id, !resIsDone(id)); renderReservations(); renderDashboard(); }
+
+// ─── Food ──────────────────────────────────────────────────────
+const FOOD_REGIONS = ['전체',...new Set(FOODS.map(f=>f.region))];
+const FOOD_CATS    = ['전체','국밥·탕','고기·구이','전·부침개','면·분식','백반·정식','디저트·간식'];
+let activeRegion='전체', activeCategory='전체';
+
+function renderFood(region, category) {
+  if (region   !== undefined) activeRegion   = region;
+  if (category !== undefined) activeCategory = category;
+  document.getElementById('region-filters').innerHTML = FOOD_REGIONS.map(r =>
+    `<div class="rf-btn${r===activeRegion?' active':''}" onclick="renderFood('${r}',undefined)">${r}</div>`).join('');
+  document.getElementById('category-filters').innerHTML = FOOD_CATS.map(c =>
+    `<div class="rf-btn${c===activeCategory?' active':''}" onclick="renderFood(undefined,'${c}')">${c}</div>`).join('');
+  const list = FOODS.filter(f =>
+    (activeRegion==='전체'||f.region===activeRegion) &&
+    (activeCategory==='전체'||f.category===activeCategory));
+  document.getElementById('food-count').textContent = `${list.length}개`;
+  const listEl = document.getElementById('food-list');
+  if (!list.length) { listEl.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub)">해당 항목 없음</div>'; return; }
+  listEl.innerHTML = list.map(f =>
+    '<div class="food-card"><div class="food-card-top">'+
+    '<div class="food-name">'+f.name+'</div><div class="food-meal">'+f.meal+'</div></div>'+
+    '<div class="food-menu">🍴 '+f.menu+'</div>'+
+    '<div class="food-why">'+f.why+'</div>'+
+    '<div class="food-addr">📍 '+f.addr+'</div>'+
+    '<div class="food-btns" id="fbtns-'+f.name.replace(/\s/g,'_')+'"></div></div>'
+  ).join('');
+  list.forEach(f => {
+    const wrap = document.getElementById('fbtns-'+f.name.replace(/\s/g,'_'));
+    if (!wrap) return;
+    const a = document.createElement('a');
+    a.className='food-map-btn'; a.href='https://map.naver.com/v5/search/'+encodeURIComponent(f.map);
+    a.target='_blank'; a.rel='noopener noreferrer'; a.textContent='지도에서 보기 →';
+    wrap.appendChild(a);
+    if (f.phone) {
+      const b=document.createElement('a'); b.className='food-phone-btn';
+      b.href='tel:'+f.phone; b.textContent='📞 '+f.phone; wrap.appendChild(b);
+    }
+  });
+}
+
+// ─── Navigation ────────────────────────────────────────────────
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('sec-'+tab).classList.add('active');
+  if (tab==='home' && dashMap) setTimeout(()=>dashMap.invalidateSize(), 100);
+  if (tab==='sched') renderSchedTab();
+}
+
+function goToPost(id) {
+  switchTab(document.querySelector('[data-tab=feed]'), 'feed');
+  setTimeout(()=>{
+    const el = document.getElementById('post-'+id);
+    if (!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.classList.add('highlight');
+    setTimeout(()=>el.classList.remove('highlight'), 2000);
+  }, 100);
+}
+
+// ─── Lightbox + Toast ──────────────────────────────────────────
+function openLb(url) { document.getElementById('lb-img').src=url; document.getElementById('lb').classList.add('open'); }
+function closeLb()   { document.getElementById('lb').classList.remove('open'); }
+let _tt;
+function toast(msg, type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`toast ${type} show`;
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ─── Boot ──────────────────────────────────────────────────────
+updateStatus();
+initDashMap();
+renderDashboard();
+renderFood('전체','전체');
+renderReservations('전체');
+loadPosts();
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+name: Excel → data.js 자동 동기화
+
+on:
+  push:
+    paths:
+      - '2026_국토대장정_여행플래너.xlsx'
+      - 'travelog/excel_to_data.py'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 전체 히스토리 (rebase용)
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: openpyxl 설치
+        run: pip install openpyxl
+
+      - name: data.js 생성
+        run: cd travelog && python3 excel_to_data.py
+
+      - name: data.js 커밋 & 푸시 (충돌 방지)
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add travelog/data.js
+          if git diff --staged --quiet; then
+            echo "✅ data.js 변경 없음 — 스킵"
+          else
+            git commit -m "🤖 Auto: Excel 변경으로 data.js 업데이트"
+            # 원격에 새 커밋이 있을 경우 rebase 후 push
+            git pull --rebase origin main
+            git push origin main
+          fi
