@@ -92,36 +92,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .res-summary-num{font-size:18px;font-weight:700;color:var(--primary);white-space:nowrap}
 
 /* ── SCHEDULE TAB ── */
-.cal-week-nav{display:flex;gap:6px;padding:12px 14px 8px;overflow-x:auto;scrollbar-width:none}
-.cal-week-nav::-webkit-scrollbar{display:none}
-.cal-week-btn{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:20px;
-  padding:7px 4px;font-size:11px;font-weight:600;background:var(--surface);
-  cursor:pointer;white-space:nowrap;transition:all .2s;color:var(--text)}
-.cal-week-btn.active{background:var(--primary);border-color:var(--primary);color:white}
-.cal-dow-header{display:grid;grid-template-columns:repeat(7,1fr);
-  padding:0 10px;gap:3px;margin-bottom:4px}
-.cal-dow-header div{text-align:center;font-size:11px;font-weight:600;
-  color:var(--text-sub);padding:3px 0}
+.cal-dow-header{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;padding:0 10px}
+.cal-dow-header div{text-align:center;font-size:10px;font-weight:600;
+  color:var(--text-sub);padding:2px 0}
 .cal-dow-header div:first-child{color:#e53935}
 .cal-dow-header div:last-child{color:#1565c0}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);
-  padding:0 10px calc(80px + var(--safe-bottom));gap:5px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 10px 0;margin-top:0}
 .cal-card{background:var(--surface);border-radius:10px;box-shadow:var(--shadow);
   padding:7px 5px 6px;cursor:pointer;transition:transform .15s;min-height:80px;
   display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden}
 .cal-card:active{transform:scale(.95)}
 .cal-card.today{border:2px solid var(--accent);background:#FFF8F0}
 .cal-card.past{opacity:.5}
-.cal-card.empty{background:transparent;box-shadow:none;cursor:default}
+.cal-card.empty{background:transparent;box-shadow:none;cursor:default;min-height:0}
 .cc-daynum{font-size:9px;font-weight:700;color:var(--primary)}
 .cc-date{font-size:10px;font-weight:600;color:var(--text)}
 .cc-title{font-size:9.5px;color:var(--text-sub);line-height:1.3;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
-  flex:1}
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1}
 .cc-memo{font-size:10px;line-height:1}
 .cc-today{position:absolute;bottom:0;left:0;right:0;background:var(--accent);
   color:white;font-size:8px;font-weight:700;text-align:center;padding:2px 0;letter-spacing:.5px}
 .cal-card.today .cc-date{color:var(--accent);font-weight:700}
+#sec-sched{padding-bottom:calc(80px + var(--safe-bottom))}
 
 /* ── OVERLAY 공통 ── */
 .overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;
@@ -460,7 +452,6 @@ input[type=file]{display:none}
 
 <!-- SCHEDULE -->
 <section id="sec-sched" class="section">
-  <div class="cal-week-nav" id="cal-week-nav"></div>
   <div class="cal-dow-header">
     <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
   </div>
@@ -925,24 +916,11 @@ function closeDayDetail(){document.getElementById('day-detail-overlay').classLis
 function navDayDetail(dir){const n=currentDayNum+dir;if(n<0||n>15)return;openDayDetail(n);}
 
 // ── Schedule Tab ──
-var calWeek=null;
-const CAL_WEEKS=[
-  {label:'1주차 8/2~8/8',  days:[0,1,2,3,4,5,6]},
-  {label:'2주차 8/9~8/15', days:[7,8,9,10,11,12,13]},
-  {label:'3주차 8/16~17',  days:[14,15,null,null,null,null,null]},
-];
+const CAL_DAYS=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,null,null,null,null,null];
 function renderScheduleTab(){
   if(typeof DAY_PLANS==='undefined')return;
   const td=getTodayDay();
-  if(calWeek===null){calWeek=td<=6?0:td<=13?1:2;}
-  document.getElementById('cal-week-nav').innerHTML=CAL_WEEKS.map((w,i)=>
-    `<button class="cal-week-btn${calWeek===i?' active':''}" onclick="switchCalWeek(${i})">${w.label}</button>`
-  ).join('');
-  renderCalGrid(CAL_WEEKS[calWeek].days,td);
-}
-function switchCalWeek(idx){calWeek=idx;renderScheduleTab();}
-function renderCalGrid(dayNums,td){
-  document.getElementById('cal-grid').innerHTML=dayNums.map(d=>{
+  document.getElementById('cal-grid').innerHTML=CAL_DAYS.map(d=>{
     if(d===null)return'<div class="cal-card empty"></div>';
     const p=DAY_PLANS[d];if(!p)return'<div class="cal-card empty"></div>';
     const isT=d===td,isP=td>=0&&d<td;
@@ -953,10 +931,7 @@ function renderCalGrid(dayNums,td){
     return`<div class="cal-card${isT?' today':isP?' past':''}" onclick="openDayDetail(${d})"><div class="cc-daynum">Day ${d}</div><div class="cc-date">${dateNum}</div><div class="cc-title">${title}</div>${hm?'<div class="cc-memo">📝</div>':''}${isT?'<div class="cc-today">TODAY</div>':''}</div>`;
   }).join('');
 }
-function scrollToSchedRow(d){
-  const w=d<=6?0:d<=13?1:2;
-  if(calWeek!==w){calWeek=w;renderScheduleTab();}
-}
+function scrollToSchedRow(d){}
 
 // ── Memo System ──
 function getMemo(type,id){try{return JSON.parse(sGet(`m_${type}_${id}`))||null;}catch{return null;}}
