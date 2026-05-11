@@ -663,7 +663,7 @@ const ROUTE_DAYS = [
 ];
 
 // ── State ──
-let _sb=null, authOk=false, mapInst=null, currentDayNum=1;
+var _sb=null, authOk=false, mapInst=null, currentDayNum=1;
 
 // ── Cloud Store (Supabase travel_data table) ──
 const _store={};
@@ -707,6 +707,66 @@ async function migrateFromLocalStorage(){
       }
     }
   }catch(e){console.warn('migration error:',e);}
+}
+
+// ── 예약 ID 마이그레이션 (구버전 → 해시 기반 ID) ──
+async function migrateResIds(){
+  if(sGet('__res_migration_v3')==='done')return;
+  if(!_sb)return;
+  // 구 ID → 새 해시 ID 전체 매핑 (State1: 블루라인파크 있던 시절 / State2: KTX 추가 이후)
+  const MAP={
+    // 숙박
+    'res_2_1':    'res_r0ec7f8d0_1',
+    'res_r1_3':   'res_r5dad96af_3',
+    'res_2_4':    'res_r76769a09_4',
+    'res_2_6':    'res_rbf9bcbb7_6',
+    'res_r4_8':   'res_rebfa0d05_8',
+    'res_3_9':    'res_r111239da_9',
+    'res_r6_11':  'res_rc06d5cd0_11',
+    'res_2_12':   'res_r4b2c1440_12',
+    'res_r8_14':  'res_r8bcd23e9_14',
+    // 교통 (State1: KTX 없음)
+    'res_r9_10':  'res_r05a02326_10',
+    'res_r10_12': 'res_r5c7d5b48_12',
+    'res_r11_14': 'res_rfc0bfb84_14',
+    'res_r12_15': 'res_r0ebf000f_15',
+    // 교통 (State2: KTX 추가 후)
+    'res_ktx_6':  'res_r7956b453_6',
+    'res_r10_10': 'res_r05a02326_10',
+    'res_r11_12': 'res_r5c7d5b48_12',
+    'res_r12_14': 'res_rfc0bfb84_14',
+    'res_r13_15': 'res_r0ebf000f_15',
+    // 체험 (State1: 웨이크보드=r13)
+    'res_r13_2':  'res_r20dc6272_2',
+    // 체험 (State2: 웨이크보드=r14)
+    'res_r14_2':  'res_r20dc6272_2',
+    // 체험 공통 (통영케이블카 이후는 양쪽 동일)
+    'res_r15_8':  'res_r2d74d4e4_8',
+    'res_r16_9':  'res_r21c5a557_9',
+    'res_r17_14': 'res_r215b0b9c_14',
+    'res_r18_14': 'res_re7451720_14',
+    'res_r19_15': 'res_re1ddf660_15',
+    'res_r20_15': 'res_r196260cf_15',
+  };
+  // memo 키도 함께 마이그레이션
+  const fullMap={};
+  Object.entries(MAP).forEach(([o,n])=>{fullMap[o]=n;fullMap['memo_'+o]='memo_'+n;});
+  try{
+    const{data}=await _sb.from('travel_data').select('key,value');
+    if(!data)return;
+    const toWrite=[];
+    data.forEach(row=>{
+      if(fullMap[row.key]){
+        _store[fullMap[row.key]]=row.value; // 메모리에도 즉시 반영
+        toWrite.push({key:fullMap[row.key],value:row.value,updated_at:new Date().toISOString()});
+      }
+    });
+    if(toWrite.length>0){
+      await _sb.from('travel_data').upsert(toWrite,{onConflict:'key'});
+      console.log(`✅ 예약 ID 마이그레이션: ${toWrite.length}건 복원`);
+    }
+  }catch(e){console.warn('migrateResIds:',e);}
+  sSet('__res_migration_v3','done');
 }
 let foodFilter={region:'전체',category:'전체'};
 let resFilter='전체';
@@ -1139,6 +1199,7 @@ window.addEventListener('popstate',()=>{
   }catch(e){console.warn('Supabase init:',e);}
   await loadStore();
   await migrateFromLocalStorage();
+  await migrateResIds();
   updateStatus();
   renderDashboard();
   renderFood();
