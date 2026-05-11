@@ -3,7 +3,7 @@
 excel_to_data.py  —  Excel 여행플래너 → travelog/data.js 자동 변환
 사용: python3 excel_to_data.py
 """
-import openpyxl, json, re
+import openpyxl, json, re, hashlib
 from collections import OrderedDict
 from pathlib import Path
 
@@ -141,7 +141,8 @@ for row in ws3.iter_rows(min_row=3, values_only=False):
         except Exception:
             pass
 
-    rid = re.sub(r'[^a-z0-9]', '', name.lower())[:12] or f'r{len(RESERVATIONS)}'
+    # 이름+날짜 조합으로 안정적 해시 ID 생성 (Excel 편집해도 ID 불변)
+    rid = 'r' + hashlib.sha256(f'{name}{date_str}'.encode()).hexdigest()[:8]
     RESERVATIONS.append({
         'id':       rid,
         'type':     rtype,

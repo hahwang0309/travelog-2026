@@ -6,7 +6,7 @@
 <title>부자 국토대장정 2026 🗺️</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
 <script src="config.js" defer></script>
 <script src="data.js" defer></script>
@@ -816,7 +816,7 @@ function renderDashboard(){
 
 function refreshDashResBar(){
   if(typeof RESERVATIONS==='undefined')return;
-  const done=RESERVATIONS.filter(r=>sGet('res_'+r.id)==='done').length;
+  const done=RESERVATIONS.filter(r=>sGet('res_'+r.id+'_'+r.day)==='done').length;
   const total=RESERVATIONS.length;
   const pct=total?Math.round((done/total)*100):0;
   const n=document.getElementById('dash-res-num');if(n)n.textContent=`${done}/${total}`;
@@ -963,7 +963,7 @@ function renderReservations(){
   if(typeof RESERVATIONS==='undefined')return;
   const tf=['전체',...new Set(RESERVATIONS.map(r=>r.type))];
   document.getElementById('res-filters').innerHTML=tf.map(t=>`<button class="res-rf-btn ${resFilter===t?'active':''}" onclick="setResFilter('${t}')">${t}</button>`).join('');
-  const done=RESERVATIONS.filter(r=>sGet('res_'+r.id)==='done').length;
+  const done=RESERVATIONS.filter(r=>sGet('res_'+r.id+'_'+r.day)==='done').length;
   const total=RESERVATIONS.length;
   const pct=total?Math.round((done/total)*100):0;
   document.getElementById('res-stats-sub').textContent=`${done} / ${total} 완료`;
@@ -979,19 +979,20 @@ function renderReservations(){
     const lbl=plan?`Day ${dk} · ${plan.dateLabel} — ${plan.title.replace(/^Day \d+ — /,'').substring(0,18)}`:`Day ${dk}`;
     html+=`<div class="res-group-label">${lbl}</div>`;
     byDay[dk].forEach(r=>{
-      const isDone=sGet('res_'+r.id)==='done';
-      const memo=getMemo('res',r.id);
+      const rkey=r.id+'_'+r.day;
+      const isDone=sGet('res_'+rkey)==='done';
+      const memo=getMemo('res',rkey);
       const tx=memo?.text||'';
       const sN=r.name.replace(/'/g,"\\'");
-      html+=`<div class="res-card ${isDone?'done':''}" id="rescard-${r.id}"><div class="res-card-inner"><div class="res-card-top"><div class="res-name">${r.name}</div><div class="res-badges"><span class="res-day-badge">D${r.day}</span><span class="res-type-badge ${r.type}">${r.type}</span></div></div><div class="res-desc">${r.date?r.date+' · ':''}${r.desc||''}</div><div class="res-actions"><button class="res-toggle-btn ${isDone?'complete':'pending'}" onclick="toggleRes('${r.id}')">${isDone?'✅ 완료':'⏳ 예약 필요'}</button>${r.bookUrl?`<a class="res-link-btn" href="${r.bookUrl}" target="_blank">예약 →</a>`:''}${r.phone?`<a class="res-phone-btn" href="tel:${r.phone}">📞</a>`:''}</div></div>${renderResInfoSection(r)}<div class="res-memo-badge ${memo?'has-memo':''}" onclick="openMemoOverlay('res','${r.id}','${sN}',false,null)">📝 ${tx?`<span style="color:var(--text)">${tx}</span>`:'예약 메모 남기기'} ›</div></div>`;
+      html+=`<div class="res-card ${isDone?'done':''}" id="rescard-${rkey}"><div class="res-card-inner"><div class="res-card-top"><div class="res-name">${r.name}</div><div class="res-badges"><span class="res-day-badge">D${r.day}</span><span class="res-type-badge ${r.type}">${r.type}</span></div></div><div class="res-desc">${r.date?r.date+' · ':''}${r.desc||''}</div><div class="res-actions"><button class="res-toggle-btn ${isDone?'complete':'pending'}" onclick="toggleRes('${rkey}')">${isDone?'✅ 완료':'⏳ 예약 필요'}</button>${r.bookUrl?`<a class="res-link-btn" href="${r.bookUrl}" target="_blank">예약 →</a>`:''}${r.phone?`<a class="res-phone-btn" href="tel:${r.phone}">📞</a>`:''}</div></div>${renderResInfoSection(r)}<div class="res-memo-badge ${memo?'has-memo':''}" onclick="openMemoOverlay('res','${rkey}','${sN}',false,null)">📝 ${tx?`<span style="color:var(--text)">${tx}</span>`:'예약 메모 남기기'} ›</div></div>`;
     });
   });
   document.getElementById('res-list').innerHTML=html;
   refreshDashResBar();
 }
-function toggleRes(id){
-  const done=sGet('res_'+id)==='done';
-  if(done)sDel('res_'+id);else sSet('res_'+id,'done');
+function toggleRes(rkey){
+  const done=sGet('res_'+rkey)==='done';
+  if(done)sDel('res_'+rkey);else sSet('res_'+rkey,'done');
   renderReservations();
   showToast(done?'예약 취소로 변경':'예약 완료 처리 ✅',done?'':'ok');
 }

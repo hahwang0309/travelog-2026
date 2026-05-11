@@ -84,7 +84,7 @@ js = DATA_JS.read_text(encoding='utf-8')
 plans_js = "const DAY_PLANS = " + json.dumps(plans, ensure_ascii=False, indent=2) + ";\n"
 
 if "const DAY_PLANS" in js:
-    js = re.sub(r'const DAY_PLANS\s*=[\s\S]*?;\n', plans_js, js)
+    js = re.sub(r'const DAY_PLANS\s*=[\s\S]*?;\n', lambda m: plans_js, js)
 else:
     js = js.rstrip() + "\n\n" + plans_js
 
