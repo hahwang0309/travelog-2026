@@ -92,31 +92,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .res-summary-num{font-size:18px;font-weight:700;color:var(--primary);white-space:nowrap}
 
 /* ── SCHEDULE TAB ── */
-.sched-days{padding:12px 14px 4px;overflow-x:auto;display:flex;gap:8px;
-  scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.sched-days::-webkit-scrollbar{display:none}
-.sched-day-btn{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);
-  border-radius:12px;padding:9px 12px;cursor:pointer;text-align:center;transition:all .2s;min-height:52px}
-.sched-day-btn:active,.sched-day-btn.active-chip{background:var(--primary);border-color:var(--primary);color:white}
-.sched-day-btn.today-day{border-color:var(--accent);background:#FFF3E8}
-.sdb-num{font-size:11px;font-weight:700}
-.sdb-date{font-size:10px;color:var(--text-sub);margin-top:1px}
-.sched-day-btn.active-chip .sdb-date,.sched-day-btn.active-chip .sdb-num{color:white}
-.sched-day-btn.today-day .sdb-date,.sched-day-btn.today-day .sdb-num{color:var(--accent)}
-
-.sched-list{padding:8px 14px calc(80px + var(--safe-bottom));max-width:600px;margin:0 auto}
-.sched-row{background:var(--surface);border-radius:var(--radius);
-  box-shadow:var(--shadow);margin-bottom:10px;padding:14px;
-  cursor:pointer;display:flex;justify-content:space-between;align-items:center;
-  transition:transform .15s;min-height:64px}
-.sched-row:active{transform:scale(.98)}
-.sched-row.today-row{border-left:4px solid var(--accent)}
-.sched-row.past-row{opacity:.55}
-.sr-left{flex:1}
-.sr-num{font-size:11px;color:var(--primary);font-weight:700;margin-bottom:2px}
-.sr-title{font-size:14px;font-weight:600;margin-bottom:2px}
-.sr-route{font-size:12px;color:var(--text-sub)}
-.sr-arrow{color:var(--text-sub);font-size:20px;margin-left:8px}
+.cal-week-nav{display:flex;gap:6px;padding:12px 14px 8px;overflow-x:auto;scrollbar-width:none}
+.cal-week-nav::-webkit-scrollbar{display:none}
+.cal-week-btn{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:20px;
+  padding:7px 4px;font-size:11px;font-weight:600;background:var(--surface);
+  cursor:pointer;white-space:nowrap;transition:all .2s;color:var(--text)}
+.cal-week-btn.active{background:var(--primary);border-color:var(--primary);color:white}
+.cal-dow-header{display:grid;grid-template-columns:repeat(7,1fr);
+  padding:0 10px;gap:3px;margin-bottom:4px}
+.cal-dow-header div{text-align:center;font-size:11px;font-weight:600;
+  color:var(--text-sub);padding:3px 0}
+.cal-dow-header div:first-child{color:#e53935}
+.cal-dow-header div:last-child{color:#1565c0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);
+  padding:0 10px calc(80px + var(--safe-bottom));gap:5px}
+.cal-card{background:var(--surface);border-radius:10px;box-shadow:var(--shadow);
+  padding:7px 5px 6px;cursor:pointer;transition:transform .15s;min-height:80px;
+  display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden}
+.cal-card:active{transform:scale(.95)}
+.cal-card.today{border:2px solid var(--accent);background:#FFF8F0}
+.cal-card.past{opacity:.5}
+.cal-card.empty{background:transparent;box-shadow:none;cursor:default}
+.cc-daynum{font-size:9px;font-weight:700;color:var(--primary)}
+.cc-date{font-size:10px;font-weight:600;color:var(--text)}
+.cc-title{font-size:9.5px;color:var(--text-sub);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  flex:1}
+.cc-memo{font-size:10px;line-height:1}
+.cc-today{position:absolute;bottom:0;left:0;right:0;background:var(--accent);
+  color:white;font-size:8px;font-weight:700;text-align:center;padding:2px 0;letter-spacing:.5px}
+.cal-card.today .cc-date{color:var(--accent);font-weight:700}
 
 /* ── OVERLAY 공통 ── */
 .overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;
@@ -303,6 +308,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .post-card{background:var(--surface);border-radius:var(--radius);
   box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
 .post-card.highlight{outline:3px solid var(--accent)}
+.post-del-btn{background:none;border:none;cursor:pointer;font-size:1rem;opacity:0.4;padding:2px 4px;border-radius:4px;transition:opacity .2s}
+.post-del-btn:hover{opacity:1;background:rgba(255,80,80,.12)}
 .post-head{display:flex;align-items:center;gap:10px;padding:10px 12px}
 .day-badge{background:var(--primary);color:white;font-size:10px;
   font-weight:700;padding:3px 7px;border-radius:8px;white-space:nowrap}
@@ -453,8 +460,11 @@ input[type=file]{display:none}
 
 <!-- SCHEDULE -->
 <section id="sec-sched" class="section">
-  <div class="sched-days" id="sched-days"></div>
-  <div class="sched-list" id="sched-list"></div>
+  <div class="cal-week-nav" id="cal-week-nav"></div>
+  <div class="cal-dow-header">
+    <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
 </section>
 
 <!-- FOOD -->
@@ -915,24 +925,37 @@ function closeDayDetail(){document.getElementById('day-detail-overlay').classLis
 function navDayDetail(dir){const n=currentDayNum+dir;if(n<0||n>15)return;openDayDetail(n);}
 
 // ── Schedule Tab ──
+var calWeek=null;
+const CAL_WEEKS=[
+  {label:'1주차 8/2~8/8',  days:[0,1,2,3,4,5,6]},
+  {label:'2주차 8/9~8/15', days:[7,8,9,10,11,12,13]},
+  {label:'3주차 8/16~17',  days:[14,15,null,null,null,null,null]},
+];
 function renderScheduleTab(){
   if(typeof DAY_PLANS==='undefined')return;
   const td=getTodayDay();
-  document.getElementById('sched-days').innerHTML=DAY_PLANS.map(p=>{
-    const isT=p.dayNum===td;
-    return `<div class="sched-day-btn ${isT?'today-day':''}" onclick="openDayDetail(${p.dayNum})"><div class="sdb-num">Day ${p.dayNum}</div><div class="sdb-date">${p.dateLabel}</div></div>`;
-  }).join('');
-  document.getElementById('sched-list').innerHTML=DAY_PLANS.map(p=>{
-    const isT=p.dayNum===td;
-    const isP=p.dayNum<td&&td>=0;
-    const memo=getMemo('day',p.dayNum);
+  if(calWeek===null){calWeek=td<=6?0:td<=13?1:2;}
+  document.getElementById('cal-week-nav').innerHTML=CAL_WEEKS.map((w,i)=>
+    `<button class="cal-week-btn${calWeek===i?' active':''}" onclick="switchCalWeek(${i})">${w.label}</button>`
+  ).join('');
+  renderCalGrid(CAL_WEEKS[calWeek].days,td);
+}
+function switchCalWeek(idx){calWeek=idx;renderScheduleTab();}
+function renderCalGrid(dayNums,td){
+  document.getElementById('cal-grid').innerHTML=dayNums.map(d=>{
+    if(d===null)return'<div class="cal-card empty"></div>';
+    const p=DAY_PLANS[d];if(!p)return'<div class="cal-card empty"></div>';
+    const isT=d===td,isP=td>=0&&d<td;
+    const memo=getMemo('day',d);
     const hm=memo&&(memo.text||memo.stars);
-    return `<div class="sched-row ${isT?'today-row':''} ${isP?'past-row':''}" id="srow-${p.dayNum}" onclick="openDayDetail(${p.dayNum})"><div class="sr-left"><div class="sr-num">Day ${p.dayNum} · ${p.dateLabel}</div><div class="sr-title">${p.title.replace(/^Day \d+ — /,'')}</div><div class="sr-route">${p.route}${hm?' · 📝':''}${isT?' 📍 오늘':''}</div></div><div class="sr-arrow">›</div></div>`;
+    const title=p.title.replace(/^Day \d+ — /,'');
+    const dateNum=p.dateLabel.split('(')[0];
+    return`<div class="cal-card${isT?' today':isP?' past':''}" onclick="openDayDetail(${d})"><div class="cc-daynum">Day ${d}</div><div class="cc-date">${dateNum}</div><div class="cc-title">${title}</div>${hm?'<div class="cc-memo">📝</div>':''}${isT?'<div class="cc-today">TODAY</div>':''}</div>`;
   }).join('');
 }
 function scrollToSchedRow(d){
-  document.querySelectorAll('.sched-day-btn').forEach((b,i)=>b.classList.toggle('active-chip',i===d));
-  const r=document.getElementById('srow-'+d);if(r)r.scrollIntoView({behavior:'smooth',block:'nearest'});
+  const w=d<=6?0:d<=13?1:2;
+  if(calWeek!==w){calWeek=w;renderScheduleTab();}
 }
 
 // ── Memo System ──
@@ -1091,7 +1114,8 @@ async function loadPosts(){
     le.innerHTML=data.map(p=>{
       const ph=p.photos||[];
       const phHtml=ph.length?`<div class="photos n${Math.min(ph.length,4)}">${ph.slice(0,4).map(x=>`<img src="${x.url}" onclick="openLb('${x.url}')" loading="lazy" alt="">`).join('')}</div>`:'';
-      return `<div class="post-card"><div class="post-head"><span class="day-badge">Day ${p.day_num||'?'}</span><div><div class="post-loc">${p.location||''}</div><div class="post-date">${new Date(p.created_at).toLocaleDateString('ko-KR')} · ${p.weather||''}</div></div></div><div class="post-body">${(p.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${phHtml}</div>`;
+      const delBtn=`<button class="post-del-btn" onclick="deletePost('${p.id}',this)" title="삭제">🗑️</button>`;
+      return `<div class="post-card" id="post-${p.id}"><div class="post-head"><span class="day-badge">Day ${p.day_num||'?'}</span><div><div class="post-loc">${p.location||''}</div><div class="post-date">${new Date(p.created_at).toLocaleDateString('ko-KR')} · ${p.weather||''}</div></div>${delBtn}</div><div class="post-body">${(p.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${phHtml}</div>`;
     }).join('');
   }catch(e){
     le.innerHTML=`<div class="empty-state"><div class="icon">📡</div><h3>불러오기 실패</h3><p>${e.message}</p></div>`;
@@ -1107,6 +1131,26 @@ function checkPw(){
     document.getElementById('form-wrap').style.display='';
     document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
   }else{showToast('비밀번호가 틀렸습니다','err');document.getElementById('pw').value='';}
+}
+async function deletePost(id, btn){
+  const pw=prompt('비밀번호를 입력하세요');
+  if(pw===null)return;
+  if(pw!==CONFIG.adminPassword){showToast('비밀번호가 틀렸습니다','err');return;}
+  if(!confirm('이 기록을 삭제할까요?'))return;
+  btn.disabled=true;
+  try{
+    await _sb.from('photos').delete().eq('post_id',id);
+    const{error}=await _sb.from('posts').delete().eq('id',id);
+    if(error)throw error;
+    document.getElementById('post-'+id)?.remove();
+    // 피드 카운트 업데이트
+    const remaining=document.querySelectorAll('.post-card').length;
+    document.getElementById('feed-meta').textContent=`${remaining}개의 기록`;
+    showToast('기록 삭제 완료','ok');
+  }catch(e){
+    showToast('삭제 실패: '+e.message,'err');
+    btn.disabled=false;
+  }
 }
 function doLogout(){
   authOk=false;
@@ -1331,6 +1375,7 @@ window.openDayDetail    = openDayDetail;
 window.closeDayDetail   = closeDayDetail;
 window.navDayDetail     = navDayDetail;
 window.openMemoOverlay  = openMemoOverlay;
+window.deletePost       = deletePost;
 window.closeMemoOverlay = closeMemoOverlay;
 window.saveMemoOverlay  = saveMemoOverlay;
 window.deleteMemoOverlay= deleteMemoOverlay;
