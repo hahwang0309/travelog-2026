@@ -115,6 +115,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sa
 .cal-card.today .cc-date{color:var(--accent);font-weight:700}
 #sec-sched{padding-bottom:calc(80px + var(--safe-bottom))}
 
+.trail-map-links{display:flex;gap:6px;margin:10px 0 4px}
+.trail-map-link{font-size:12px;padding:6px 14px;border-radius:20px;border:none;
+  cursor:pointer;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.trail-map-link.naver{background:#03C75A;color:white}
+.trail-map-link.kakao{background:#FEE500;color:#3C1E1E}
+
 /* ── OVERLAY 공통 ── */
 .overlay{position:fixed;inset:0;background:var(--bg);z-index:2000;
   transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
@@ -663,6 +669,24 @@ const ROUTE_DAYS = [
   {day:15, latlng:[37.5665,126.9780]},
 ];
 
+// ── Trail Map Links (Day 10·11·12) ──
+const TRAIL_LINKS = {
+  10: { naver:'https://map.naver.com/v5/search/금오도+비렁길', kakao:'https://map.kakao.com/?q=금오도+비렁길' },
+  11: { naver:'https://map.naver.com/v5/search/지리산+둘레길+화개장터', kakao:'https://map.kakao.com/?q=지리산+둘레길+화개' },
+  12: { naver:'https://map.naver.com/v5/search/지리산+둘레길+의신마을', kakao:'https://map.kakao.com/?q=지리산+둘레길+구례' },
+};
+function renderTrailMap(dayNum, container){
+  const t=TRAIL_LINKS[dayNum]; if(!t) return;
+  const bar=`<div class="trail-map-links">
+    <a class="trail-map-link naver" href="${t.naver}" target="_blank">🗺 네이버지도</a>
+    <a class="trail-map-link kakao" href="${t.kakao}" target="_blank">🗺 카카오맵</a>
+  </div>`;
+  // 시간표(첫 번째 <table>) 바로 뒤에 삽입
+  const firstTable = container.querySelector('table');
+  if(firstTable) firstTable.insertAdjacentHTML('afterend', bar);
+  else container.querySelector('.md-body').insertAdjacentHTML('afterbegin', bar);
+}
+
 // ── State ──
 var _sb=null, authOk=false, mapInst=null, currentDayNum=1;
 
@@ -828,7 +852,7 @@ function initDashMap(){
   if(!window.L){setTimeout(initDashMap,300);return;}
   if(mapInst)return;
   mapInst=L.map('dash-map',{zoomControl:false,attributionControl:false}).setView([36.3,127.9],6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(mapInst);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© CartoDB'}).addTo(mapInst);
   const todayDay=getTodayDay();
   const coords=ROUTE_DAYS.filter(r=>r.day>=1&&r.day<=15).map(r=>r.latlng);
   L.polyline(coords,{color:'#52B788',weight:2.5,opacity:.7,dashArray:'5,7'}).addTo(mapInst);
@@ -908,6 +932,7 @@ function openDayDetail(dayNum){
   cel.innerHTML=`<div class="md-body">${htmlBody}</div>${memoSec}`;
   initCheckboxes(dayNum, cel);
   renderCustomChecklist(dayNum, cel);
+  if([10,11,12].includes(dayNum))renderTrailMap(dayNum,cel);
   document.getElementById('day-detail-overlay').classList.add('open');
   history.pushState({overlay:'day'},'');
   cel.scrollTop=0;
