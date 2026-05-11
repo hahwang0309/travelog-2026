@@ -167,3 +167,7 @@ for f in FOODS:
     cats[f['category']] = cats.get(f['category'], 0) + 1
 print(f'✅ data.js 생성: {len(SCHEDULE)}개 권역, {len(FOODS)}개 맛집, {len(RESERVATIONS)}개 예약')
 print('카테고리별:', cats)
+
+# DAY_PLANS도 자동 갱신 (excel_to_data.py가 DAY_PLANS를 덮어쓰지 않도록)
+import subprocess, sys
+subprocess.run([sys.executable, str(Path(__file__).parent / 'md_to_data.py')], check=True)
