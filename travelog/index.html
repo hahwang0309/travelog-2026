@@ -1073,7 +1073,15 @@ async function loadPosts(){
     me.textContent='연결 오류';return;
   }
   try{
-    const{data,error}=await _sb.from('posts').select('*, photos(url)').order('created_at',{ascending:false});
+    // posts + photos 별도 조회 후 JS에서 조인 (FK 자동조인 대신 수동으로 처리)
+    const{data:postsRaw,error}=await _sb.from('posts').select('*').order('created_at',{ascending:false});
+    const{data:photosRaw}=await _sb.from('photos').select('post_id,url');
+    const photosByPost={};
+    (photosRaw||[]).forEach(ph=>{
+      if(!photosByPost[ph.post_id])photosByPost[ph.post_id]=[];
+      photosByPost[ph.post_id].push({url:ph.url});
+    });
+    const data=(postsRaw||[]).map(p=>({...p,photos:photosByPost[p.id]||[]}));
     if(error)throw error;
     if(!data||!data.length){
       le.innerHTML=`<div class="empty-state"><div class="icon">📷</div><h3>아직 기록이 없어요</h3><p>여행 중 소중한 순간을 남겨보세요!</p></div>`;
