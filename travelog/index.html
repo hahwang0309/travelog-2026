@@ -711,7 +711,7 @@ async function migrateFromLocalStorage(){
 
 // ── 예약 ID 마이그레이션 (구버전 → 해시 기반 ID) ──
 async function migrateResIds(){
-  if(sGet('__res_migration_v3')==='done')return;
+  if(sGet('__res_migration_v4')==='done')return;
   if(!_sb)return;
   // 구 ID → 새 해시 ID 전체 매핑 (State1: 블루라인파크 있던 시절 / State2: KTX 추가 이후)
   const MAP={
@@ -748,9 +748,15 @@ async function migrateResIds(){
     'res_r19_15': 'res_re1ddf660_15',
     'res_r20_15': 'res_r196260cf_15',
   };
-  // memo 키도 함께 마이그레이션
+  // memo(m_res_*) 키와 예약상세(ri_*) 키도 함께 마이그레이션
   const fullMap={};
-  Object.entries(MAP).forEach(([o,n])=>{fullMap[o]=n;fullMap['memo_'+o]='memo_'+n;});
+  Object.entries(MAP).forEach(([o,n])=>{
+    const rkey_old=o.replace('res_','');  // e.g. "r14_2"
+    const rkey_new=n.replace('res_','');  // e.g. "r20dc6272_2"
+    fullMap[o]=n;                          // res_r14_2 → res_r20dc6272_2
+    fullMap['m_'+o]='m_'+n;               // m_res_r14_2 → m_res_r20dc6272_2
+    fullMap['ri_'+rkey_old]='ri_'+rkey_new; // ri_r14_2 → ri_r20dc6272_2
+  });
   try{
     const{data}=await _sb.from('travel_data').select('key,value');
     if(!data)return;
@@ -766,7 +772,7 @@ async function migrateResIds(){
       console.log(`✅ 예약 ID 마이그레이션: ${toWrite.length}건 복원`);
     }
   }catch(e){console.warn('migrateResIds:',e);}
-  sSet('__res_migration_v3','done');
+  sSet('__res_migration_v4','done');
 }
 let foodFilter={region:'전체',category:'전체'};
 let resFilter='전체';
