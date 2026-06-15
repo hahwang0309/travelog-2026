@@ -808,6 +808,7 @@ let _currentStars=0;
 let uploadedFiles=[];
 
 // ── Helpers ──
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getTodayDay(){
   const kst=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
   const start=new Date('2026-08-03T00:00:00+09:00');
@@ -1116,10 +1117,10 @@ async function loadPosts(){
       const ph=p.photos||[];
       const phHtml=ph.length?`<div class="photos n${Math.min(ph.length,4)}">${ph.slice(0,4).map(x=>`<img src="${x.url}" onclick="openLb('${x.url}')" loading="lazy" alt="">`).join('')}</div>`:'';
       const delBtn=`<button class="post-del-btn" onclick="deletePost('${p.id}',this)" title="삭제">🗑️</button>`;
-      return `<div class="post-card" id="post-${p.id}"><div class="post-head"><span class="day-badge">Day ${p.day_num||'?'}</span><div><div class="post-loc">${p.location||''}</div><div class="post-date">${new Date(p.created_at).toLocaleDateString('ko-KR')} · ${p.weather||''}</div></div>${delBtn}</div><div class="post-body">${(p.content||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${phHtml}</div>`;
+      return `<div class="post-card" id="post-${p.id}"><div class="post-head"><span class="day-badge">Day ${p.day_num||'?'}</span><div><div class="post-loc">${escapeHtml(p.location||'')}</div><div class="post-date">${new Date(p.created_at).toLocaleDateString('ko-KR')} · ${escapeHtml(p.weather||'')}</div></div>${delBtn}</div><div class="post-body">${escapeHtml(p.content||'')}</div>${phHtml}</div>`;
     }).join('');
   }catch(e){
-    le.innerHTML=`<div class="empty-state"><div class="icon">📡</div><h3>불러오기 실패</h3><p>${e.message}</p></div>`;
+    le.innerHTML=`<div class="empty-state"><div class="icon">📡</div><h3>불러오기 실패</h3><p>${escapeHtml(e.message)}</p></div>`;
     me.textContent='오류 발생';
   }
 }
