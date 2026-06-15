@@ -459,7 +459,7 @@ input[type=file]{display:none}
 <!-- SCHEDULE -->
 <section id="sec-sched" class="section">
   <div style="text-align:center;padding:10px 0 6px">
-    <button onclick="downloadSchedule()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--primary,#2D6A4F);background:transparent;border:1.5px solid var(--primary,#2D6A4F);border-radius:20px;cursor:pointer">⬇ 일정 다운로드</button>
+    <button onclick="downloadSchedule()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;font-size:12px;font-weight:600;color:var(--primary,#2D6A4F);background:transparent;border:1.5px solid var(--primary,#2D6A4F);border-radius:20px;cursor:pointer">⬇ PDF 다운로드</button>
   </div>
   <div class="cal-dow-header">
     <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
@@ -1409,24 +1409,60 @@ window.downloadSchedule = function() {
     return;
   }
   const first = DAY_PLANS[0], last = DAY_PLANS[DAY_PLANS.length - 1];
-  const lines = [
-    '부자 국토대장정 2026 여행 일정표',
-    `${first.dateLabel} – ${last.dateLabel}  |  ${DAY_PLANS.length}일`,
-    `생성: ${new Date().toLocaleDateString('ko-KR')}`,
-    '═'.repeat(48), '',
-  ];
-  DAY_PLANS.forEach(p => {
-    lines.push(`D${String(p.dayNum).padStart(2,'0')}  ${p.dateLabel}  ${p.route}`);
-    (p.keyItems || []).forEach(item => lines.push(`     ${item}`));
-    lines.push('');
-  });
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(blob),
-    download: '국토대장정_2026_일정표.txt',
-  });
-  a.click();
-  URL.revokeObjectURL(a.href);
+
+  const rows = DAY_PLANS.map(p => {
+    const items = (p.keyItems || []).map(i => `<li>${i}</li>`).join('');
+    return `
+      <tr>
+        <td class="day">D${String(p.dayNum).padStart(2,'0')}</td>
+        <td class="date">${p.dateLabel}</td>
+        <td class="route">${p.route || ''}</td>
+        <td class="items">${items ? `<ul>${items}</ul>` : ''}</td>
+      </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>국토대장정 2026 일정표</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; font-size: 11pt; color: #1a1a1a; padding: 20mm 15mm; }
+  h1 { font-size: 18pt; font-weight: 700; color: #2D6A4F; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; font-size: 10pt; color: #555; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #2D6A4F; color: #fff; font-size: 10pt; font-weight: 600; padding: 6px 8px; text-align: left; }
+  td { padding: 5px 8px; vertical-align: top; border-bottom: 1px solid #e0e0e0; font-size: 10pt; }
+  tr:nth-child(even) td { background: #f7faf8; }
+  td.day { font-weight: 700; color: #2D6A4F; white-space: nowrap; width: 36px; }
+  td.date { white-space: nowrap; width: 80px; color: #444; }
+  td.route { font-weight: 600; width: 160px; }
+  td.items ul { padding-left: 14px; }
+  td.items li { margin-bottom: 1px; color: #333; }
+  .footer { text-align: right; font-size: 8pt; color: #aaa; margin-top: 10px; }
+  @media print {
+    body { padding: 10mm 10mm; }
+    @page { margin: 10mm; size: A4 portrait; }
+  }
+</style>
+</head>
+<body>
+<h1>🗺 부자 국토대장정 2026</h1>
+<p class="subtitle">${first.dateLabel} – ${last.dateLabel} &nbsp;|&nbsp; 총 ${DAY_PLANS.length}일</p>
+<table>
+  <thead><tr><th>Day</th><th>날짜</th><th>경로</th><th>주요 일정</th></tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<p class="footer">생성: ${new Date().toLocaleDateString('ko-KR')}</p>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
 };
 
 }); // DOMContentLoaded
