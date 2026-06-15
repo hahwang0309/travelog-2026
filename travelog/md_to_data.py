@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """Day00~Day15.md → data.js 의 DAY_PLANS 배열로 변환"""
-import re, json
+import re, json, os, unicodedata
 from pathlib import Path
 
-MD_DIR  = Path(__file__).parent.parent / "여행계획"
+# macOS에서 생성된 파일은 NFD 인코딩, Linux는 NFC — os.listdir로 실제 경로 탐색
+def _find_dir(parent: Path, name: str) -> Path:
+    nfc = unicodedata.normalize('NFC', name)
+    nfd = unicodedata.normalize('NFD', name)
+    for entry in os.listdir(parent):
+        n = unicodedata.normalize('NFC', entry)
+        if n == nfc or n == nfd:
+            return parent / entry
+    return parent / name  # fallback
+
+MD_DIR  = _find_dir(Path(__file__).parent.parent, "여행계획")
 DATA_JS = Path(__file__).parent / "data.js"
 
 # 날짜 매핑 (Day00 = 출발 전날 8/2, Day01~15 = 8/3~8/17)
