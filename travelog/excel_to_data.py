@@ -141,8 +141,11 @@ for row in ws3.iter_rows(min_row=3, values_only=False):
         except Exception:
             pass
 
-    # 이름+날짜 조합으로 안정적 해시 ID 생성 (Excel 편집해도 ID 불변)
-    rid = 'r' + hashlib.sha256(f'{name}{date_str}'.encode()).hexdigest()[:8]
+    # stable_id 컬럼(L열)에서 읽기 → 이름/날짜 바꿔도 ID 불변
+    # 없으면 hash 생성 (신규 행)
+    rid = s(row[11].value) if row[11].value else (
+        'r' + hashlib.sha256(f'{name}{date_str}'.encode()).hexdigest()[:8]
+    )
     RESERVATIONS.append({
         'id':       rid,
         'type':     rtype,

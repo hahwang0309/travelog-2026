@@ -569,7 +569,7 @@ input[type=file]{display:none}
             <option value="부산경남" data-lat="35.18" data-lng="129.07">부산·경남 (부산·통영)</option>
             <option value="전남"     data-lat="34.76" data-lng="127.66">전남 (하동·여수)</option>
             <option value="지리산"   data-lat="35.30" data-lng="127.60">지리산</option>
-            <option value="전북충청" data-lat="36.00" data-lng="127.80">전북·충청 (전주·단양)</option>
+            <option value="전북충청" data-lat="35.90" data-lng="127.50">전남·충청 (광주·단양)</option>
           </select>
         </div>
         <div class="fg">
@@ -662,18 +662,16 @@ const ROUTE_DAYS = [
   {day:8,  latlng:[34.8544,128.4335]},
   {day:9,  latlng:[34.7604,127.6622]},
   {day:10, latlng:[34.5760,127.7700]},
-  {day:11, latlng:[35.1803,127.5600]},
-  {day:12, latlng:[35.8242,127.1479]},
-  {day:13, latlng:[35.8300,127.1500]},
+  {day:11, latlng:[34.7604,127.6622]},
+  {day:12, latlng:[35.1595,126.8526]},
+  {day:13, latlng:[36.9857,128.3663]},
   {day:14, latlng:[36.9857,128.3663]},
   {day:15, latlng:[37.5665,126.9780]},
 ];
 
-// ── Trail Map Links (Day 10·11·12) ──
+// ── Trail Map Links (Day 10만 해당 — 금오도 비렁길) ──
 const TRAIL_LINKS = {
   10: { naver:'https://map.naver.com/v5/search/금오도+비렁길', kakao:'https://map.kakao.com/?q=금오도+비렁길' },
-  11: { naver:'https://map.naver.com/v5/search/지리산+둘레길+화개장터', kakao:'https://map.kakao.com/?q=지리산+둘레길+화개' },
-  12: { naver:'https://map.naver.com/v5/search/지리산+둘레길+의신마을', kakao:'https://map.kakao.com/?q=지리산+둘레길+구례' },
 };
 function renderTrailMap(dayNum, container){
   const t=TRAIL_LINKS[dayNum]; if(!t) return;
@@ -932,7 +930,7 @@ function openDayDetail(dayNum){
   cel.innerHTML=`<div class="md-body">${htmlBody}</div>${memoSec}`;
   initCheckboxes(dayNum, cel);
   renderCustomChecklist(dayNum, cel);
-  if([10,11,12].includes(dayNum))renderTrailMap(dayNum,cel);
+  if(dayNum===10)renderTrailMap(dayNum,cel);
   document.getElementById('day-detail-overlay').classList.add('open');
   history.pushState({overlay:'day'},'');
   cel.scrollTop=0;
